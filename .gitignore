@@ -1,0 +1,28 @@
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Databases & local state
+agent_queue.db
+agent_state.json
+
+# Screen captures & assets
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Logs
+*.log
+logs/
+
+# Env config
+.env
