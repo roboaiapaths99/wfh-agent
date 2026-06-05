@@ -105,9 +105,13 @@ def capture_webcam() -> dict:
         # Open default system camera (device index 0)
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
-            result["image_base64"] = FALLBACK_WEBCAM_IMAGE
-            result["error"] = "No webcam device detected"
-            return result
+            # Retry after a short delay in case of momentary busy/conflict
+            time.sleep(1)
+            cap = cv2.VideoCapture(0)
+            if not cap.isOpened():
+                result["image_base64"] = FALLBACK_WEBCAM_IMAGE
+                result["error"] = "No webcam device detected"
+                return result
 
         # Warm up the sensor
         for _ in range(3):

@@ -3,6 +3,7 @@ import time
 import base64
 import collections
 import requests
+from datetime import datetime, timezone
 
 from config import ACTIVITY_SYNC_SECONDS, SCREENSHOT_SYNC_SECONDS, MAIN_BACKEND_URL
 from local_state import load_state
@@ -343,7 +344,8 @@ def screenshot_sync_loop():
                     "image_url": base64_url,
                     "thumbnail_url": None,
                     "active_app": app_info.get("active_app"),
-                    "active_window": app_info.get("active_window")
+                    "active_window": app_info.get("active_window"),
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 }
 
                 try:

@@ -179,6 +179,7 @@ def auth_status():
 
     return {
         "logged_in": bool(state.get("token")),
+        "token": state.get("token"),
         "device_id": state.get("device_id"),
         "session_id": state.get("session_id")
     }
