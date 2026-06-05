@@ -102,7 +102,7 @@ def start_activity_tracking():
         mouse_listener.start()
 
 
-def get_activity_snapshot():
+def get_activity_snapshot(reset=True):
     global keyboard_count, mouse_clicks, scroll_events
 
     now = time.time()
@@ -118,8 +118,9 @@ def get_activity_snapshot():
         "active_seconds": max(0, 300 - idle_seconds)
     }
 
-    keyboard_count = 0
-    mouse_clicks = 0
-    scroll_events = 0
+    if reset:
+        keyboard_count = 0
+        mouse_clicks = 0
+        scroll_events = 0
 
     return data

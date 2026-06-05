@@ -28,7 +28,7 @@ async def startup_event():
     start_activity_tracking()
     # Auto-resume background syncing loops if session state was already running
     state = load_state()
-    if state.get("token") and state.get("session_id"):
+    if state.get("token"):
         print("Restoring active auto-sync Loops on daemon startup...")
         start_auto_sync()
 
@@ -56,7 +56,7 @@ def hardware():
 @app.get("/activity")
 def activity():
     from auto_sync import get_consecutive_idle_seconds
-    res = get_activity_snapshot()
+    res = get_activity_snapshot(reset=False)
     res["consecutive_idle_seconds"] = get_consecutive_idle_seconds()
     return res
 
@@ -243,7 +243,7 @@ def get_productivity():
     from services.activity_service import get_activity_snapshot
     from services.app_monitor_service import get_active_app_info
     
-    activity = get_activity_snapshot()
+    activity = get_activity_snapshot(reset=False)
     app_info = get_active_app_info()
     
     score = calculate_productivity_score(

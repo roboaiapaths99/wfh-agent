@@ -73,7 +73,7 @@
  [],
  False,
  False,
- 1780475016,
+ 1780636167,
  [('runw.exe',
    'C:\\Users\\roboa\\OneDrive\\Desktop\\attendnece\\agent\\venv\\Lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit-intel\\runw.exe',
    'EXECUTABLE')],
