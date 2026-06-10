@@ -218,34 +218,7 @@ def activity_sync_loop():
                 else:
                     consecutive_idle_seconds = 0
                     _idle_alert_fired = False
-
-                policy = state.get("policy", {})
-                max_idle_mins = policy.get("max_idle_minutes", 20)
-                
-                if consecutive_idle_seconds >= (max_idle_mins * 60) and not _idle_alert_fired:
-                    print(f"Extended idle threshold hit! ({consecutive_idle_seconds}s). Dispatching idle alert...")
-                    try:
-                        idle_mins = int(consecutive_idle_seconds / 60)
-                        alert_payload = {
-                            "device_id": device_id,
-                            "session_id": session_id,
-                            "type": "WFH_IDLE_EXTENDED",
-                            "severity": "medium",
-                            "details": f"No keyboard or mouse activity detected for {idle_mins} minutes. Employee may be away from their desk.",
-                            "metadata": {
-                                "idle_seconds": consecutive_idle_seconds,
-                                "idle_minutes": idle_mins
-                            }
-                        }
-                        requests.post(
-                            f"{MAIN_BACKEND_URL}/api/wfh/alert",
-                            json=alert_payload,
-                            headers={"Authorization": f"Bearer {token}"},
-                            timeout=10
-                        )
-                        _idle_alert_fired = True
-                    except Exception as e:
-                        print("Failed to dispatch idle alert:", str(e))
+                # Idle alerts dispatch disabled as per request
 
 
 
