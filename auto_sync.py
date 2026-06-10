@@ -30,6 +30,14 @@ _app_usage_running = False
 _queue_running = False
 _face_check_running = False
 
+# Thread references to prevent duplicate spawns
+_activity_thread = None
+_screenshot_thread = None
+_queue_thread = None
+_sampling_thread = None
+_app_usage_thread = None
+_face_check_thread = None
+
 _app_samples = collections.defaultdict(int)
 _app_samples_lock = threading.Lock()
 
@@ -239,36 +247,7 @@ def activity_sync_loop():
                     except Exception as e:
                         print("Failed to dispatch idle alert:", str(e))
 
-                try:
-                    from services.activity_service import get_typing_cadence_stats
-                    cadence = get_typing_cadence_stats()
-                    if cadence.get("anomaly"):
-                        print("Keystroke biometric cadence anomaly detected! Triggering silent webcam audit...")
-                        from services.webcam_service import capture_webcam
-                        cam_check = capture_webcam()
-                        
-                        face_status = "passed" if cam_check.get('liveness_passed') else "failed"
-                        alert_payload = {
-                            "device_id": device_id,
-                            "type": "WFH_IDENTITY_MISMATCH",
-                            "severity": "high",
-                            "details": f"Typing pattern looks different from this employee's usual style — someone else might be using the computer. Webcam face check: {face_status}.",
-                            "metadata": {
-                                "cadence_mean": cadence.get("mean"),
-                                "cadence_variance": cadence.get("variance"),
-                                "liveness_passed": cam_check.get("liveness_passed")
-                            }
-                        }
-                        
-                        requests.post(
-                            f"{MAIN_BACKEND_URL}/api/wfh/alert",
-                            json=alert_payload,
-                            headers={"Authorization": f"Bearer {token}"},
-                            timeout=20
-                        )
-                        print("Identity mismatch alert synced to backend.")
-                except Exception as cadence_err:
-                    print("Error running typing cadence continuous auth hook:", str(cadence_err))
+
 
                 try:
                     result = send_activity(token, activity)
@@ -384,6 +363,14 @@ def queue_sync_loop():
 
 def start_auto_sync():
     global _activity_running, _screenshot_running, _queue_running, _active_sampling_running, _app_usage_running, _face_check_running
+    global _activity_thread, _screenshot_thread, _queue_thread, _sampling_thread, _app_usage_thread, _face_check_thread
+    global consecutive_idle_seconds, _idle_alert_fired
+
+    # CRITICAL: Reset idle counter on every new check-in so stale values
+    # from before login don't trigger immediate auto-checkout
+    consecutive_idle_seconds = 0
+    _idle_alert_fired = False
+
     _activity_running = True
     _screenshot_running = True
     _queue_running = True
@@ -391,19 +378,35 @@ def start_auto_sync():
     _app_usage_running = True
     _face_check_running = True
 
-    activity_thread = threading.Thread(target=activity_sync_loop, daemon=True)
-    screenshot_thread = threading.Thread(target=screenshot_sync_loop, daemon=True)
-    queue_thread = threading.Thread(target=queue_sync_loop, daemon=True)
-    sampling_thread = threading.Thread(target=active_app_sampling_loop, daemon=True)
-    app_usage_thread = threading.Thread(target=app_usage_sync_loop, daemon=True)
-    face_check_thread = threading.Thread(target=face_check_loop, daemon=True)
+    # Only spawn threads if they aren't already running.
+    # Spawning duplicates causes keystroke data races where each thread
+    # resets the keystroke counter, making the other thread think user is idle.
+    def _is_alive(t):
+        return t is not None and t.is_alive()
 
-    activity_thread.start()
-    screenshot_thread.start()
-    queue_thread.start()
-    sampling_thread.start()
-    app_usage_thread.start()
-    face_check_thread.start()
+    if not _is_alive(_activity_thread):
+        _activity_thread = threading.Thread(target=activity_sync_loop, daemon=True)
+        _activity_thread.start()
+
+    if not _is_alive(_screenshot_thread):
+        _screenshot_thread = threading.Thread(target=screenshot_sync_loop, daemon=True)
+        _screenshot_thread.start()
+
+    if not _is_alive(_queue_thread):
+        _queue_thread = threading.Thread(target=queue_sync_loop, daemon=True)
+        _queue_thread.start()
+
+    if not _is_alive(_sampling_thread):
+        _sampling_thread = threading.Thread(target=active_app_sampling_loop, daemon=True)
+        _sampling_thread.start()
+
+    if not _is_alive(_app_usage_thread):
+        _app_usage_thread = threading.Thread(target=app_usage_sync_loop, daemon=True)
+        _app_usage_thread.start()
+
+    if not _is_alive(_face_check_thread):
+        _face_check_thread = threading.Thread(target=face_check_loop, daemon=True)
+        _face_check_thread.start()
 
     # Local screenshots cleanup on startup (older than 7 days)
     try:

@@ -155,11 +155,19 @@ def mark_failed(item_id: int, error: str):
 
 
 def queue_count():
-    conn = get_connection()
-    cur = conn.cursor()
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) FROM upload_queue WHERE status = 'pending'")
-    count = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM upload_queue WHERE status = 'pending'")
+        count = cur.fetchone()[0]
 
-    conn.close()
-    return count
+        conn.close()
+        return count
+    except Exception as e:
+        print("Error querying local queue count:", str(e))
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return 0

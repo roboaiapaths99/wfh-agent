@@ -5,6 +5,12 @@ env/
 .venv/
 
 
+
+build/
+dist/
+*.exe
+
+
 # Python cache files
 __pycache__/
 *.py[cod]
